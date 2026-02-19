@@ -1,0 +1,39 @@
+# Exclude Claude-generated documentation
+*.md
+
+# Exclude HEDIS data files
+HEDIS MY*
+doc/HEDIS MY*
+
+# Exclude large data directories
+data/
+
+# Exclude large parquet files
+*.parquet
+doc/organizational_npi_full.parquet
+
+# Exclude generated output files
+output/
+
+# Exclude old/temporary R files
+old.R
+
+# macOS metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# R session files
+.Rhistory
+.RData
+.Rproj.user/
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# Claude Code metadata
+.claude/
