@@ -25,6 +25,9 @@ old.R
 .Spotlight-V100
 .Trashes
 
+# Local path configuration (machine-specific, never commit)
+R/config.local.R
+
 # R session files
 .Rhistory
 .RData
