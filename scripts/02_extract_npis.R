@@ -3,6 +3,8 @@ library(dplyr)
 library(stringr)
 library(arrow)
 
+source("R/config.R")
+
 # Search the full NPI database for all Chestnut Health Systems NPIs
 # Also save all organizational NPIs for future comparison with Chestnut
 #

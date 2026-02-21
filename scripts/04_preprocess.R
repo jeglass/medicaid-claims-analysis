@@ -45,31 +45,48 @@ comprehensive_codes <- read_csv(
 cat("Loaded", nrow(comprehensive_codes), "unique HCPCS/CPT codes\n")
 
 cat("Loading HEDIS codebook...\n")
-hedis_codebook <- read_xlsx(
-  HEDIS_2026_XLSX,
-  sheet = "Value Sets to Codes"
-) |>
-  filter(`Code System` %in% c("HCPCS", "CPT", "CPT-CAT-II")) |>
-  rename(
-    value_set = `Value Set Name`,
-    code_system = `Code System`,
-    code = Code,
-    hedis_definition = Definition
+if (!file.exists(HEDIS_2026_XLSX)) {
+  warning(
+    "HEDIS codebook not found: ",
+    HEDIS_2026_XLSX,
+    "\n",
+    "  hedis_definition and code_value_sets will be NA for all claims.\n",
+    "  Set HEDIS_2026_XLSX in R/config.local.R to enable HEDIS enrichment."
   )
-
-# Map each code to all its HEDIS value sets (pipe-separated)
-codes_to_value_sets <- hedis_codebook |>
-  distinct(code, value_set) |>
-  group_by(code) |>
-  summarize(
-    code_value_sets = paste(unique(value_set), collapse = " | "),
-    .groups = "drop"
+  hedis_lookup <- tibble(
+    code = character(),
+    hedis_definition = character(),
+    code_value_sets = character()
   )
+} else {
+  hedis_codebook <- read_xlsx(
+    HEDIS_2026_XLSX,
+    sheet = "Value Sets to Codes"
+  ) |>
+    filter(`Code System` %in% c("HCPCS", "CPT", "CPT-CAT-II")) |>
+    rename(
+      value_set = `Value Set Name`,
+      code_system = `Code System`,
+      code = Code,
+      hedis_definition = Definition
+    )
 
-# Single definition per code
-hedis_lookup <- hedis_codebook |>
-  distinct(code, hedis_definition) |>
-  left_join(codes_to_value_sets, by = "code")
+  # Map each code to all its HEDIS value sets (pipe-separated)
+  codes_to_value_sets <- hedis_codebook |>
+    distinct(code, value_set) |>
+    group_by(code) |>
+    summarize(
+      code_value_sets = paste(unique(value_set), collapse = " | "),
+      .groups = "drop"
+    )
+
+  # Single definition per code
+  hedis_lookup <- hedis_codebook |>
+    distinct(code, hedis_definition) |>
+    left_join(codes_to_value_sets, by = "code")
+
+  cat("Loaded", nrow(hedis_lookup), "HEDIS code mappings\n")
+}
 
 cat("Loading Chestnut NPI list...\n")
 chestnut_lookup <- read_csv(
