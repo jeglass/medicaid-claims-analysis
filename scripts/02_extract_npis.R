@@ -169,25 +169,44 @@ print(unique(chestnut_npis$Name))
 write_csv(chestnut_npis, "doc/chestnut_npi_full.csv")
 cat("\nSaved full list to doc/chestnut_npi_full.csv\n")
 
+cat("Identifying all Illinois and Missouri organizations...\n")
+# Search for Illinois (IL) and Missouri (MO) organizations using the plocstatename field of the NPI database
+illinois_missouri_npis <- npi_data |>
+  filter(
+    entity == "Organization" & # Organization type (2 = org, 1 = individual)
+      plocstatename %in% c("IL", "MO")
+  ) |>
+  select(
+    NPI = npi,
+    Name = porgname,
+    Taxonomy = taxonomy,
+    LicenseNumber = license,
+    PrimaryTaxonomy = primary_tax,
+    MailAddress1 = pmailline1,
+    MailAddress2 = pmailline2,
+    MailCity = pmailcityname,
+    MailState = pmailstatename,
+    MailZip = pmailzip,
+    LocationAddress1 = plocline1,
+    LocationAddress2 = plocline2,
+    LocationCity = ploccityname,
+    LocationState = plocstatename,
+    LocationZip = ploczip
+  ) |>
+  arrange(NPI)
 
-# Compare with existing list
-existing_npis <- read_csv("doc/chestnut_npi.csv", show_col_types = FALSE)
-new_npis <- setdiff(chestnut_npis$NPI, existing_npis$NPI)
+cat(
+  "\nFound",
+  nrow(illinois_missouri_npis),
+  "Illinois or Missouri NPIs in the database\n"
+)
+cat("First 20 Unique Illinois or Missouri names found:\n")
+print(unique(illinois_missouri_npis$Name[1:20]))
 
-if (length(new_npis) > 0) {
-  cat(
-    "\nFound",
-    length(new_npis),
-    "additional NPIs not in the original list:\n"
-  )
-  chestnut_npis |>
-    filter(NPI %in% new_npis) |>
-    print()
-} else {
-  cat("\nNo additional NPIs found beyond the original list.\n")
-}
+# Save the results
+write_csv(illinois_missouri_npis, "doc/illinois_missouri_npi_full.csv")
+cat("\nSaved full list to doc/illinois_missouri_npi_full.csv\n")
 
 cat("\nSummary:\n")
-cat("  Original list:", nrow(existing_npis), "NPIs\n")
-cat("  Full database search:", nrow(chestnut_npis), "NPIs\n")
-cat("  New NPIs found:", length(new_npis), "\n")
+cat("  Chestnut NPIs found:", nrow(chestnut_npis), "\n")
+cat("  Unique Chestnut names:", length(unique(chestnut_npis$Name)), "\n")

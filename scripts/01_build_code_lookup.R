@@ -29,7 +29,11 @@ for (year in rvu_years) {
     unzip(rvu_file, exdir = temp_dir, overwrite = TRUE)
 
     # Find the PPRRVU Excel file (more complete than CSV)
-    xlsx_files <- list.files(temp_dir, pattern = "PPRRVU.*_nonQPP\\.xlsx$", full.names = TRUE)
+    xlsx_files <- list.files(
+      temp_dir,
+      pattern = "PPRRVU.*_nonQPP\\.xlsx$",
+      full.names = TRUE
+    )
 
     if (length(xlsx_files) > 0) {
       # Read the RVU Excel file - skip first 9 rows (header info)
@@ -41,9 +45,14 @@ for (year in rvu_years) {
 
       # Extract code and description columns (first 2 columns)
       rvu_codes <- rvu_data |>
-        select(1, 3) |>  # Column 1 is code, column 3 is description (col 2 is modifier)
+        select(1, 3) |> # Column 1 is code, column 3 is description (col 2 is modifier)
         set_names(c("code", "description")) |>
-        filter(!is.na(code), code != "", !is.na(description), description != "") |>
+        filter(
+          !is.na(code),
+          code != "",
+          !is.na(description),
+          description != ""
+        ) |>
         mutate(
           source = paste0("RVU20", year, "A"),
           year = paste0("20", year)
@@ -89,7 +98,9 @@ cat("\n")
 # ===== 3. Parse HEDIS codebook =====
 cat("=== Parsing HEDIS codebook ===\n")
 
-if (file.exists("doc/HEDIS MY 2026 Volume 2 Value Set Directory_2025-08-01.xlsx")) {
+if (
+  file.exists("doc/HEDIS MY 2026 Volume 2 Value Set Directory_2025-08-01.xlsx")
+) {
   cat("Processing HEDIS codebook...\n")
 
   hedis_codes <- read_xlsx(
@@ -129,7 +140,9 @@ consolidated_codes <- all_codes |>
     ),
     # Priority score: higher is better
     priority = case_when(
-      source %in% c("HEDIS_2026", "HCPC2026_JAN") & code_type == "HCPCS_Level_II" ~ 100,
+      source %in%
+        c("HEDIS_2026", "HCPC2026_JAN") &
+        code_type == "HCPCS_Level_II" ~ 100,
       source == "RVU2026A" ~ 90,
       source == "RVU2025A" ~ 80,
       source == "RVU2024A" ~ 70,
@@ -145,49 +158,22 @@ consolidated_codes <- all_codes |>
 
 cat("Total unique codes:", nrow(consolidated_codes), "\n")
 cat("  CPT codes:         ", sum(consolidated_codes$code_type == "CPT"), "\n")
-cat("  HCPCS Level II:    ", sum(consolidated_codes$code_type == "HCPCS_Level_II"), "\n")
-cat("  Other:             ", sum(consolidated_codes$code_type == "Other"), "\n\n")
+cat(
+  "  HCPCS Level II:    ",
+  sum(consolidated_codes$code_type == "HCPCS_Level_II"),
+  "\n"
+)
+cat(
+  "  Other:             ",
+  sum(consolidated_codes$code_type == "Other"),
+  "\n\n"
+)
 
 # ===== 5. Save the comprehensive lookup =====
 cat("Saving comprehensive HCPCS/CPT lookup...\n")
 write_csv(consolidated_codes, "doc/hcpcs/comprehensive_code_lookup.csv")
 cat("Saved to doc/hcpcs/comprehensive_code_lookup.csv\n\n")
 
-# ===== 6. Check coverage of Medicaid codes =====
-cat("=== Checking Medicaid code coverage ===\n")
-
-medicaid_coverage <- read_csv(
-  "doc/hcpcs/medicaid_hcpcs_codes_coverage.csv",
-  col_types = cols(.default = col_character(),
-                   in_hcpcs_2026 = col_logical(),
-                   in_hedis = col_logical(),
-                   in_either = col_logical()),
-  show_col_types = FALSE
+cat(
+  "Done! Run scripts/05_analyze_coverage.R to validate coverage against the Medicaid parquet.\n"
 )
-
-# Check how many are now covered
-medicaid_coverage <- medicaid_coverage |>
-  mutate(
-    in_comprehensive = HCPCS_CODE %in% consolidated_codes$code
-  )
-
-cat("Original coverage: ", sum(medicaid_coverage$in_either), "/", nrow(medicaid_coverage),
-    sprintf("(%.1f%%)", 100 * sum(medicaid_coverage$in_either) / nrow(medicaid_coverage)), "\n")
-cat("New coverage:      ", sum(medicaid_coverage$in_comprehensive), "/", nrow(medicaid_coverage),
-    sprintf("(%.1f%%)", 100 * sum(medicaid_coverage$in_comprehensive) / nrow(medicaid_coverage)), "\n")
-cat("Improvement:       +", sum(medicaid_coverage$in_comprehensive) - sum(medicaid_coverage$in_either), " codes\n\n")
-
-# Show what's still missing
-still_missing <- medicaid_coverage |>
-  filter(!in_comprehensive) |>
-  select(HCPCS_CODE)
-
-cat("Still missing", nrow(still_missing), "codes\n")
-cat("Sample of remaining missing codes:\n")
-print(head(still_missing, 30))
-
-# Save updated coverage analysis
-write_csv(medicaid_coverage, "doc/hcpcs/medicaid_hcpcs_codes_coverage_updated.csv")
-cat("\nSaved updated coverage to doc/hcpcs/medicaid_hcpcs_codes_coverage_updated.csv\n")
-
-cat("\nDone!\n")
