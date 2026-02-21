@@ -42,10 +42,10 @@ add_taxonomy <- function(npi_data, file_description) {
   # The Taxonomy field format is like "261QF0400X" or "261QF0400X  12345"
   npi_data <- npi_data |>
     mutate(
-      TaxonomyCode = str_extract(Taxonomy, "^[A-Z0-9]{10}"),  # Extract 10-char code
-      Taxonomy_Original = Taxonomy  # Keep original for reference
+      TaxonomyCode = str_extract(Taxonomy, "^[A-Z0-9]{10}"), # Extract 10-char code
+      Taxonomy_Original = Taxonomy # Keep original for reference
     ) |>
-    select(-Taxonomy)  # Remove original Taxonomy to avoid duplicate names
+    select(-Taxonomy) # Remove original Taxonomy to avoid duplicate names
 
   # Check for any NPIs with missing taxonomy codes
   missing_codes <- npi_data |>
@@ -53,7 +53,11 @@ add_taxonomy <- function(npi_data, file_description) {
     select(NPI, Name, Taxonomy_Original)
 
   if (nrow(missing_codes) > 0) {
-    cat("  Warning:", nrow(missing_codes), "NPIs have missing or invalid taxonomy codes\n")
+    cat(
+      "  Warning:",
+      nrow(missing_codes),
+      "NPIs have missing or invalid taxonomy codes\n"
+    )
   }
 
   # Join with taxonomy descriptions
@@ -72,7 +76,7 @@ add_taxonomy <- function(npi_data, file_description) {
       TaxonomyClassification,
       TaxonomySpecialization,
       TaxonomyDisplayName,
-      everything()  # Include any additional columns (no duplicate Taxonomy now)
+      everything() # Include any additional columns (no duplicate Taxonomy now)
     )
 
   # Check for any taxonomy codes that weren't found in the reference file
@@ -81,12 +85,19 @@ add_taxonomy <- function(npi_data, file_description) {
     select(NPI, Name, TaxonomyCode)
 
   if (nrow(unmatched) > 0) {
-    cat("  Warning:", nrow(unmatched), "taxonomy codes not found in reference file\n")
+    cat(
+      "  Warning:",
+      nrow(unmatched),
+      "taxonomy codes not found in reference file\n"
+    )
   }
 
   # Show unique taxonomy types
-  cat("  Unique taxonomy types:",
-      n_distinct(npi_enriched$TaxonomyDisplayName, na.rm = TRUE), "\n")
+  cat(
+    "  Unique taxonomy types:",
+    n_distinct(npi_enriched$TaxonomyDisplayName, na.rm = TRUE),
+    "\n"
+  )
 
   return(npi_enriched)
 }
@@ -99,7 +110,10 @@ if (file.exists("doc/chestnut_npi_full.csv")) {
     show_col_types = FALSE
   )
 
-  chestnut_enriched <- add_taxonomy(chestnut_npis, "Chestnut Health Systems NPIs")
+  chestnut_enriched <- add_taxonomy(
+    chestnut_npis,
+    "Chestnut Health Systems NPIs"
+  )
 
   if (!is.null(chestnut_enriched)) {
     # Show taxonomy types used by Chestnut
@@ -138,6 +152,42 @@ if (file.exists("doc/organizational_npi_full.parquet")) {
   }
 } else {
   cat("Organizational NPI file not found, skipping...\n\n")
+}
+
+# Process Illinois and Missouri organizational NPIs
+if (file.exists("doc/illinois_missouri_npi_full.csv")) {
+  illinois_missouri_npis <- read_csv(
+    "doc/illinois_missouri_npi_full.csv",
+    col_types = cols(.default = col_character()),
+    show_col_types = FALSE
+  )
+
+  illinois_missouri_enriched <- add_taxonomy(
+    illinois_missouri_npis,
+    "All organizational NPIs"
+  )
+
+  if (!is.null(illinois_missouri_enriched)) {
+    # Show top 20 taxonomy types across all Illinois and Missouri organizations
+    cat(
+      "  Top 20 taxonomy types across all Illinois and Missouri  organizations:\n"
+    )
+    illinois_missouri_enriched |>
+      filter(!is.na(TaxonomyDisplayName)) |>
+      count(TaxonomyDisplayName, sort = TRUE) |>
+      head(20) |>
+      print()
+
+    # Save the enriched file
+    write_csv(illinois_missouri_enriched, "doc/illinois_missouri_npi_full.csv")
+    cat(
+      "  ✓ Saved enriched Illinois and Missouri data to doc/illinois_missouri_npi_full.csv\n\n"
+    )
+  }
+} else {
+  cat(
+    "Illinois and Missouri Organizational NPI file not found, skipping...\n\n"
+  )
 }
 
 cat("\n✓ Done!\n")
