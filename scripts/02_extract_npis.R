@@ -65,7 +65,7 @@ library(arrow)
 # write_parquet(npi_data, "data/npi/npidata_with_taxonomy.parquet")
 
 cat("Loading NPI database from parquet file...\n")
-npi_data <- read_parquet("data/npi/npidata_with_taxonomy.parquet") |>
+npi_data <- read_parquet(NPI_PARQUET) |>
   select(
     npi,
     entity,
