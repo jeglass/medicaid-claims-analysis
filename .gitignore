@@ -5,9 +5,6 @@
 HEDIS MY*
 doc/HEDIS MY*
 
-# Exclude large data directories
-data/
-
 # Exclude large parquet files
 *.parquet
 doc/organizational_npi_full.parquet

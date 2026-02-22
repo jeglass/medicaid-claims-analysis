@@ -1,0 +1,15 @@
+# Exclude all data files
+*.parquet
+*.rds
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# macOS metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
