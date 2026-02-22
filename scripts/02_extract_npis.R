@@ -209,6 +209,43 @@ print(unique(illinois_missouri_npis$Name[1:20]))
 write_csv(illinois_missouri_npis, "doc/illinois_missouri_npi_full.csv")
 cat("\nSaved full list to doc/illinois_missouri_npi_full.csv\n")
 
+cat("Identifying all Washington and Oregon organizations...\n")
+washington_oregon_npis <- npi_data |>
+  filter(
+    entity == "Organization" &
+      plocstatename %in% c("WA", "OR")
+  ) |>
+  select(
+    NPI = npi,
+    Name = porgname,
+    Taxonomy = taxonomy,
+    LicenseNumber = license,
+    PrimaryTaxonomy = primary_tax,
+    MailAddress1 = pmailline1,
+    MailAddress2 = pmailline2,
+    MailCity = pmailcityname,
+    MailState = pmailstatename,
+    MailZip = pmailzip,
+    LocationAddress1 = plocline1,
+    LocationAddress2 = plocline2,
+    LocationCity = ploccityname,
+    LocationState = plocstatename,
+    LocationZip = ploczip
+  ) |>
+  arrange(NPI)
+
+cat(
+  "\nFound",
+  nrow(washington_oregon_npis),
+  "Washington or Oregon NPIs in the database\n"
+)
+cat("First 20 unique Washington or Oregon names found:\n")
+print(unique(washington_oregon_npis$Name[1:20]))
+
+# Save the results
+write_csv(washington_oregon_npis, "doc/washington_oregon_npi_full.csv")
+cat("\nSaved full list to doc/washington_oregon_npi_full.csv\n")
+
 cat("\nSummary:\n")
 cat("  Chestnut NPIs found:", nrow(chestnut_npis), "\n")
 cat("  Unique Chestnut names:", length(unique(chestnut_npis$Name)), "\n")

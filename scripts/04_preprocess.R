@@ -256,5 +256,82 @@ cat("Saved enriched claims to", IL_MO_CLAIMS_RDS, "\n")
 cat("  Rows:", format(nrow(il_mo_claims_enriched), big.mark = ","), "\n")
 cat("  Columns:", ncol(il_mo_claims_enriched), "\n\n")
 
+# ---- Filter parquet for Washington/Oregon claims ----------------------------
+
+cat("Loading Washington/Oregon NPI list...\n")
+wa_or_lookup <- read_csv(
+  WA_OR_NPI_CSV,
+  col_types = cols(.default = "c")
+)
+cat("Loaded", nrow(wa_or_lookup), "Washington/Oregon NPIs\n\n")
+
+cat("Filtering claims for Washington/Oregon providers...\n")
+cat("(This may take several minutes given the large NPI list)\n")
+wa_or_claims <- open_dataset(MEDICAID_PARQUET) |>
+  filter(
+    BILLING_PROVIDER_NPI_NUM %in%
+      wa_or_lookup$NPI |
+      SERVICING_PROVIDER_NPI_NUM %in% wa_or_lookup$NPI
+  ) |>
+  collect()
+
+wa_or_claims <- wa_or_claims |>
+  mutate(year_month = ym(CLAIM_FROM_MONTH)) |>
+  select(-CLAIM_FROM_MONTH)
+
+cat(
+  "Found",
+  format(nrow(wa_or_claims), big.mark = ","),
+  "Washington/Oregon claims\n\n"
+)
+
+# ---- Enrich WA/OR claims ---------------------------------------------------
+
+wa_or_provider_lookup <- build_provider_lookup(wa_or_lookup)
+
+wa_or_claims_enriched <- wa_or_claims |>
+  # Servicing provider
+  left_join(
+    wa_or_provider_lookup,
+    by = c("SERVICING_PROVIDER_NPI_NUM" = "NPI")
+  ) |>
+  rename(
+    sp_name = Name,
+    sp_address = Address,
+    sp_taxonomy = Taxonomy,
+    sp_taxonomy_code = TaxonomyCode,
+    sp_taxonomy_description = TaxonomyDisplayName
+  ) |>
+  # Billing provider
+  left_join(
+    wa_or_provider_lookup,
+    by = c("BILLING_PROVIDER_NPI_NUM" = "NPI")
+  ) |>
+  rename(
+    bp_name = Name,
+    bp_address = Address,
+    bp_taxonomy = Taxonomy,
+    bp_taxonomy_code = TaxonomyCode,
+    bp_taxonomy_description = TaxonomyDisplayName
+  ) |>
+  # Code descriptions
+  left_join(comprehensive_codes, by = c("HCPCS_CODE" = "code")) |>
+  # HEDIS definitions and value sets
+  left_join(hedis_lookup, by = c("HCPCS_CODE" = "code"))
+
+cat("Enriched Washington/Oregon claims with:\n")
+cat("  - Comprehensive HCPCS/CPT descriptions (98.7% coverage)\n")
+cat("  - HEDIS quality measure definitions and value sets\n")
+cat(
+  "  - Provider taxonomy descriptions for billing and servicing providers\n\n"
+)
+
+# ---- Save -----------------------------------------------------------------
+
+saveRDS(wa_or_claims_enriched, WA_OR_CLAIMS_RDS)
+cat("Saved enriched claims to", WA_OR_CLAIMS_RDS, "\n")
+cat("  Rows:", format(nrow(wa_or_claims_enriched), big.mark = ","), "\n")
+cat("  Columns:", ncol(wa_or_claims_enriched), "\n\n")
+
 cat("=== Preprocessing Complete ===\n")
 cat("Next: run scripts/05_analyze_coverage.R for coverage statistics.\n")

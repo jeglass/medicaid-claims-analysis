@@ -350,4 +350,91 @@ il_mo_claims |>
   head(20) |>
   print()
 
+# ============================================================================
+# Section 5: Washington/Oregon claims coverage
+# ============================================================================
+
+cat("\n\n=== Section 5: Washington/Oregon Claims Coverage ===\n\n")
+
+wa_or_claims <- readRDS(WA_OR_CLAIMS_RDS)
+cat(
+  "Loaded",
+  format(nrow(wa_or_claims), big.mark = ","),
+  "Washington/Oregon claims\n\n"
+)
+
+wa_or_coverage_stats <- wa_or_claims |>
+  summarize(
+    total_claims = n(),
+    unique_codes = n_distinct(HCPCS_CODE),
+    codes_with_description = n_distinct(HCPCS_CODE[!is.na(code_description)]),
+    codes_with_hedis = n_distinct(HCPCS_CODE[!is.na(hedis_definition)]),
+    claims_with_description = sum(!is.na(code_description)),
+    pct_codes_covered = 100 *
+      n_distinct(HCPCS_CODE[!is.na(code_description)]) /
+      n_distinct(HCPCS_CODE),
+    pct_claims_covered = 100 * sum(!is.na(code_description)) / n()
+  )
+
+cat(
+  "Total claims:        ",
+  format(wa_or_coverage_stats$total_claims, big.mark = ","),
+  "\n"
+)
+cat("Unique HCPCS codes:  ", wa_or_coverage_stats$unique_codes, "\n")
+cat(
+  "Codes with descriptions:",
+  wa_or_coverage_stats$codes_with_description,
+  sprintf("(%.1f%%)", wa_or_coverage_stats$pct_codes_covered),
+  "\n"
+)
+cat("Codes with HEDIS:    ", wa_or_coverage_stats$codes_with_hedis, "\n")
+cat(
+  "Claims with descriptions:",
+  format(wa_or_coverage_stats$claims_with_description, big.mark = ","),
+  sprintf("(%.1f%%)", wa_or_coverage_stats$pct_claims_covered),
+  "\n\n"
+)
+
+cat("Top 20 most frequent HCPCS codes in Washington/Oregon claims:\n")
+wa_or_top_codes <- wa_or_claims |>
+  count(HCPCS_CODE, code_description, code_type, sort = TRUE) |>
+  head(20)
+print(wa_or_top_codes, n = 20)
+
+cat("\nClaims by code type:\n")
+wa_or_claims |>
+  count(code_type, sort = TRUE) |>
+  mutate(
+    percentage = 100 * n / sum(n),
+    code_type = ifelse(is.na(code_type), "Unknown/Missing", code_type)
+  ) |>
+  print(n = Inf)
+
+wa_or_missing_codes <- wa_or_claims |>
+  filter(is.na(code_description)) |>
+  count(HCPCS_CODE, sort = TRUE)
+
+if (nrow(wa_or_missing_codes) > 0) {
+  cat("\nCodes without descriptions (top 10):\n")
+  print(head(wa_or_missing_codes, 10))
+  cat("\nNote:", nrow(wa_or_missing_codes), "unique codes lack descriptions\n")
+  cat(
+    "This represents",
+    format(sum(wa_or_missing_codes$n), big.mark = ","),
+    "claims",
+    sprintf("(%.1f%%)", 100 * sum(wa_or_missing_codes$n) / nrow(wa_or_claims)),
+    "\n"
+  )
+} else {
+  cat("\nAll codes have descriptions!\n")
+}
+
+cat("\nTop 20 taxonomy types in Washington/Oregon billing providers:\n")
+wa_or_claims |>
+  filter(!is.na(bp_taxonomy_description)) |>
+  count(bp_taxonomy_description, sort = TRUE) |>
+  head(20) |>
+  print()
+
 cat("\n=== Coverage Analysis Complete ===\n")

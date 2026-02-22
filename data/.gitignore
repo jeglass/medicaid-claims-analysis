@@ -1,6 +1,7 @@
 # Exclude all data files
 *.parquet
 *.rds
+*.zip
 
 # Editor temporary files
 *.swp

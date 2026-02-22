@@ -190,4 +190,34 @@ if (file.exists("doc/illinois_missouri_npi_full.csv")) {
   )
 }
 
+# Process Washington and Oregon organizational NPIs
+if (file.exists("doc/washington_oregon_npi_full.csv")) {
+  washington_oregon_npis <- read_csv(
+    "doc/washington_oregon_npi_full.csv",
+    col_types = cols(.default = col_character()),
+    show_col_types = FALSE
+  )
+
+  washington_oregon_enriched <- add_taxonomy(
+    washington_oregon_npis,
+    "Washington and Oregon organizational NPIs"
+  )
+
+  if (!is.null(washington_oregon_enriched)) {
+    cat("  Top 20 taxonomy types across all Washington and Oregon organizations:\n")
+    washington_oregon_enriched |>
+      filter(!is.na(TaxonomyDisplayName)) |>
+      count(TaxonomyDisplayName, sort = TRUE) |>
+      head(20) |>
+      print()
+
+    write_csv(washington_oregon_enriched, "doc/washington_oregon_npi_full.csv")
+    cat(
+      "  ✓ Saved enriched Washington and Oregon data to doc/washington_oregon_npi_full.csv\n\n"
+    )
+  }
+} else {
+  cat("Washington and Oregon NPI file not found, skipping...\n\n")
+}
+
 cat("\n✓ Done!\n")
