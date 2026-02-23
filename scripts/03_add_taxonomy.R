@@ -204,7 +204,9 @@ if (file.exists("doc/washington_oregon_npi_full.csv")) {
   )
 
   if (!is.null(washington_oregon_enriched)) {
-    cat("  Top 20 taxonomy types across all Washington and Oregon organizations:\n")
+    cat(
+      "  Top 20 taxonomy types across all Washington and Oregon organizations:\n"
+    )
     washington_oregon_enriched |>
       filter(!is.na(TaxonomyDisplayName)) |>
       count(TaxonomyDisplayName, sort = TRUE) |>
