@@ -136,7 +136,17 @@ build_provider_lookup <- function(lookup_df) {
         )
       )
     ) |>
-    select(NPI, Name, Address, Taxonomy, TaxonomyCode, TaxonomyDisplayName)
+    select(
+      NPI,
+      Name,
+      Address,
+      LocationCity,
+      LocationState,
+      LocationZip,
+      Taxonomy,
+      TaxonomyCode,
+      TaxonomyDisplayName
+    )
 }
 
 provider_lookup <- build_provider_lookup(chestnut_lookup)
@@ -147,6 +157,9 @@ chestnut_claims_enriched <- chestnut_claims |>
   rename(
     sp_name = Name,
     sp_address = Address,
+    sp_city = LocationCity,
+    sp_state = LocationState,
+    sp_zip = LocationZip,
     sp_taxonomy = Taxonomy,
     sp_taxonomy_code = TaxonomyCode,
     sp_taxonomy_description = TaxonomyDisplayName
@@ -156,6 +169,9 @@ chestnut_claims_enriched <- chestnut_claims |>
   rename(
     bp_name = Name,
     bp_address = Address,
+    bp_city = LocationCity,
+    bp_state = LocationState,
+    bp_zip = LocationZip,
     bp_taxonomy = Taxonomy,
     bp_taxonomy_code = TaxonomyCode,
     bp_taxonomy_description = TaxonomyDisplayName
@@ -221,6 +237,9 @@ il_mo_claims_enriched <- il_mo_claims |>
   rename(
     sp_name = Name,
     sp_address = Address,
+    sp_city = LocationCity,
+    sp_state = LocationState,
+    sp_zip = LocationZip,
     sp_taxonomy = Taxonomy,
     sp_taxonomy_code = TaxonomyCode,
     sp_taxonomy_description = TaxonomyDisplayName
@@ -233,6 +252,9 @@ il_mo_claims_enriched <- il_mo_claims |>
   rename(
     bp_name = Name,
     bp_address = Address,
+    bp_city = LocationCity,
+    bp_state = LocationState,
+    bp_zip = LocationZip,
     bp_taxonomy = Taxonomy,
     bp_taxonomy_code = TaxonomyCode,
     bp_taxonomy_description = TaxonomyDisplayName
@@ -298,6 +320,9 @@ wa_or_claims_enriched <- wa_or_claims |>
   rename(
     sp_name = Name,
     sp_address = Address,
+    sp_city = LocationCity,
+    sp_state = LocationState,
+    sp_zip = LocationZip,
     sp_taxonomy = Taxonomy,
     sp_taxonomy_code = TaxonomyCode,
     sp_taxonomy_description = TaxonomyDisplayName
@@ -310,6 +335,9 @@ wa_or_claims_enriched <- wa_or_claims |>
   rename(
     bp_name = Name,
     bp_address = Address,
+    bp_city = LocationCity,
+    bp_state = LocationState,
+    bp_zip = LocationZip,
     bp_taxonomy = Taxonomy,
     bp_taxonomy_code = TaxonomyCode,
     bp_taxonomy_description = TaxonomyDisplayName
