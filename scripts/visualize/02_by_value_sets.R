@@ -4,9 +4,10 @@ source("R/viz_helpers.R")
 library(dplyr)
 library(readr)
 library(lubridate)
+library(arrow)
 
 cat("Loading Chestnut claims data...\n")
-chestnut_claims <- readRDS(CHESTNUT_CLAIMS_RDS)
+chestnut_claims <- read_parquet(CHESTNUT_CLAIMS_PARQUET)
 
 cat("Loaded", format(nrow(chestnut_claims), big.mark = ","), "claims\n")
 cat(

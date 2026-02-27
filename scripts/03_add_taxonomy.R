@@ -154,72 +154,34 @@ if (file.exists("doc/organizational_npi_full.parquet")) {
   cat("Organizational NPI file not found, skipping...\n\n")
 }
 
-# Process Illinois and Missouri organizational NPIs
-if (file.exists("doc/illinois_missouri_npi_full.csv")) {
-  illinois_missouri_npis <- read_csv(
-    "doc/illinois_missouri_npi_full.csv",
+# Process IL/MO/WA/OR organizational NPIs
+if (file.exists("doc/il_mo_wa_or_npi_full.csv")) {
+  il_mo_wa_or_npis <- read_csv(
+    "doc/il_mo_wa_or_npi_full.csv",
     col_types = cols(.default = col_character()),
     show_col_types = FALSE
   )
 
-  illinois_missouri_enriched <- add_taxonomy(
-    illinois_missouri_npis,
-    "All organizational NPIs"
+  il_mo_wa_or_enriched <- add_taxonomy(
+    il_mo_wa_or_npis,
+    "IL/MO/WA/OR organizational NPIs"
   )
 
-  if (!is.null(illinois_missouri_enriched)) {
-    # Show top 20 taxonomy types across all Illinois and Missouri organizations
-    cat(
-      "  Top 20 taxonomy types across all Illinois and Missouri  organizations:\n"
-    )
-    illinois_missouri_enriched |>
+  if (!is.null(il_mo_wa_or_enriched)) {
+    cat("  Top 20 taxonomy types across all IL/MO/WA/OR organizations:\n")
+    il_mo_wa_or_enriched |>
       filter(!is.na(TaxonomyDisplayName)) |>
       count(TaxonomyDisplayName, sort = TRUE) |>
       head(20) |>
       print()
 
-    # Save the enriched file
-    write_csv(illinois_missouri_enriched, "doc/illinois_missouri_npi_full.csv")
+    write_csv(il_mo_wa_or_enriched, "doc/il_mo_wa_or_npi_full.csv")
     cat(
-      "  ✓ Saved enriched Illinois and Missouri data to doc/illinois_missouri_npi_full.csv\n\n"
+      "  ✓ Saved enriched IL/MO/WA/OR data to doc/il_mo_wa_or_npi_full.csv\n\n"
     )
   }
 } else {
-  cat(
-    "Illinois and Missouri Organizational NPI file not found, skipping...\n\n"
-  )
-}
-
-# Process Washington and Oregon organizational NPIs
-if (file.exists("doc/washington_oregon_npi_full.csv")) {
-  washington_oregon_npis <- read_csv(
-    "doc/washington_oregon_npi_full.csv",
-    col_types = cols(.default = col_character()),
-    show_col_types = FALSE
-  )
-
-  washington_oregon_enriched <- add_taxonomy(
-    washington_oregon_npis,
-    "Washington and Oregon organizational NPIs"
-  )
-
-  if (!is.null(washington_oregon_enriched)) {
-    cat(
-      "  Top 20 taxonomy types across all Washington and Oregon organizations:\n"
-    )
-    washington_oregon_enriched |>
-      filter(!is.na(TaxonomyDisplayName)) |>
-      count(TaxonomyDisplayName, sort = TRUE) |>
-      head(20) |>
-      print()
-
-    write_csv(washington_oregon_enriched, "doc/washington_oregon_npi_full.csv")
-    cat(
-      "  ✓ Saved enriched Washington and Oregon data to doc/washington_oregon_npi_full.csv\n\n"
-    )
-  }
-} else {
-  cat("Washington and Oregon NPI file not found, skipping...\n\n")
+  cat("IL/MO/WA/OR NPI file not found, skipping...\n\n")
 }
 
 cat("\n✓ Done!\n")

@@ -18,5 +18,5 @@
 # HEDIS_2024_XLSX  <- "/path/to/external/HEDIS MY 2024 Volume 2 Value Set Directory 2024-04-01.xlsx"
 
 # Derived files can also be redirected if you prefer to keep them elsewhere:
-# CHESTNUT_CLAIMS_RDS <- "/path/to/external/chestnut_claims.rds"
-# IL_MO_CLAIMS_RDS    <- "/path/to/external/illinois_missouri_claims.rds"
+# CHESTNUT_CLAIMS_PARQUET    <- "/path/to/external/chestnut_claims.parquet"
+# IL_MO_WA_OR_CLAIMS_PARQUET <- "/path/to/external/il_mo_wa_or_claims.parquet"

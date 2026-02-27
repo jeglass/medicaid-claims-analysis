@@ -26,7 +26,7 @@ library(readxl)
 
 cat("=== Section 1: Chestnut Claims Coverage ===\n\n")
 
-chestnut_claims <- readRDS(CHESTNUT_CLAIMS_RDS)
+chestnut_claims <- read_parquet(CHESTNUT_CLAIMS_PARQUET)
 cat(
   "Loaded",
   format(nrow(chestnut_claims), big.mark = ","),
@@ -264,19 +264,19 @@ if (pct_covered >= 80) {
 }
 
 # ============================================================================
-# Section 4: Illinois/Missouri claims coverage
+# Section 4: IL/MO/WA/OR claims coverage
 # ============================================================================
 
-cat("\n\n=== Section 4: Illinois/Missouri Claims Coverage ===\n\n")
+cat("\n\n=== Section 4: IL/MO/WA/OR Claims Coverage ===\n\n")
 
-il_mo_claims <- readRDS(IL_MO_CLAIMS_RDS)
+il_mo_wa_or_claims <- read_parquet(IL_MO_WA_OR_CLAIMS_PARQUET)
 cat(
   "Loaded",
-  format(nrow(il_mo_claims), big.mark = ","),
-  "Illinois/Missouri claims\n\n"
+  format(nrow(il_mo_wa_or_claims), big.mark = ","),
+  "IL/MO/WA/OR claims\n\n"
 )
 
-il_mo_coverage_stats <- il_mo_claims |>
+il_mo_wa_or_coverage_stats <- il_mo_wa_or_claims |>
   summarize(
     total_claims = n(),
     unique_codes = n_distinct(HCPCS_CODE),
@@ -291,119 +291,32 @@ il_mo_coverage_stats <- il_mo_claims |>
 
 cat(
   "Total claims:        ",
-  format(il_mo_coverage_stats$total_claims, big.mark = ","),
+  format(il_mo_wa_or_coverage_stats$total_claims, big.mark = ","),
   "\n"
 )
-cat("Unique HCPCS codes:  ", il_mo_coverage_stats$unique_codes, "\n")
+cat("Unique HCPCS codes:  ", il_mo_wa_or_coverage_stats$unique_codes, "\n")
 cat(
   "Codes with descriptions:",
-  il_mo_coverage_stats$codes_with_description,
-  sprintf("(%.1f%%)", il_mo_coverage_stats$pct_codes_covered),
+  il_mo_wa_or_coverage_stats$codes_with_description,
+  sprintf("(%.1f%%)", il_mo_wa_or_coverage_stats$pct_codes_covered),
   "\n"
 )
-cat("Codes with HEDIS:    ", il_mo_coverage_stats$codes_with_hedis, "\n")
+cat("Codes with HEDIS:    ", il_mo_wa_or_coverage_stats$codes_with_hedis, "\n")
 cat(
   "Claims with descriptions:",
-  format(il_mo_coverage_stats$claims_with_description, big.mark = ","),
-  sprintf("(%.1f%%)", il_mo_coverage_stats$pct_claims_covered),
+  format(il_mo_wa_or_coverage_stats$claims_with_description, big.mark = ","),
+  sprintf("(%.1f%%)", il_mo_wa_or_coverage_stats$pct_claims_covered),
   "\n\n"
 )
 
-cat("Top 20 most frequent HCPCS codes in Illinois/Missouri claims:\n")
-il_mo_top_codes <- il_mo_claims |>
+cat("Top 20 most frequent HCPCS codes in IL/MO/WA/OR claims:\n")
+il_mo_wa_or_claims |>
   count(HCPCS_CODE, code_description, code_type, sort = TRUE) |>
-  head(20)
-print(il_mo_top_codes, n = 20)
-
-cat("\nClaims by code type:\n")
-il_mo_claims |>
-  count(code_type, sort = TRUE) |>
-  mutate(
-    percentage = 100 * n / sum(n),
-    code_type = ifelse(is.na(code_type), "Unknown/Missing", code_type)
-  ) |>
-  print(n = Inf)
-
-il_mo_missing_codes <- il_mo_claims |>
-  filter(is.na(code_description)) |>
-  count(HCPCS_CODE, sort = TRUE)
-
-if (nrow(il_mo_missing_codes) > 0) {
-  cat("\nCodes without descriptions (top 10):\n")
-  print(head(il_mo_missing_codes, 10))
-  cat("\nNote:", nrow(il_mo_missing_codes), "unique codes lack descriptions\n")
-  cat(
-    "This represents",
-    format(sum(il_mo_missing_codes$n), big.mark = ","),
-    "claims",
-    sprintf("(%.1f%%)", 100 * sum(il_mo_missing_codes$n) / nrow(il_mo_claims)),
-    "\n"
-  )
-} else {
-  cat("\nAll codes have descriptions!\n")
-}
-
-cat("\nTop 20 taxonomy types in Illinois/Missouri billing providers:\n")
-il_mo_claims |>
-  filter(!is.na(bp_taxonomy_description)) |>
-  count(bp_taxonomy_description, sort = TRUE) |>
   head(20) |>
-  print()
-
-# ============================================================================
-# Section 5: Washington/Oregon claims coverage
-# ============================================================================
-
-cat("\n\n=== Section 5: Washington/Oregon Claims Coverage ===\n\n")
-
-wa_or_claims <- readRDS(WA_OR_CLAIMS_RDS)
-cat(
-  "Loaded",
-  format(nrow(wa_or_claims), big.mark = ","),
-  "Washington/Oregon claims\n\n"
-)
-
-wa_or_coverage_stats <- wa_or_claims |>
-  summarize(
-    total_claims = n(),
-    unique_codes = n_distinct(HCPCS_CODE),
-    codes_with_description = n_distinct(HCPCS_CODE[!is.na(code_description)]),
-    codes_with_hedis = n_distinct(HCPCS_CODE[!is.na(hedis_definition)]),
-    claims_with_description = sum(!is.na(code_description)),
-    pct_codes_covered = 100 *
-      n_distinct(HCPCS_CODE[!is.na(code_description)]) /
-      n_distinct(HCPCS_CODE),
-    pct_claims_covered = 100 * sum(!is.na(code_description)) / n()
-  )
-
-cat(
-  "Total claims:        ",
-  format(wa_or_coverage_stats$total_claims, big.mark = ","),
-  "\n"
-)
-cat("Unique HCPCS codes:  ", wa_or_coverage_stats$unique_codes, "\n")
-cat(
-  "Codes with descriptions:",
-  wa_or_coverage_stats$codes_with_description,
-  sprintf("(%.1f%%)", wa_or_coverage_stats$pct_codes_covered),
-  "\n"
-)
-cat("Codes with HEDIS:    ", wa_or_coverage_stats$codes_with_hedis, "\n")
-cat(
-  "Claims with descriptions:",
-  format(wa_or_coverage_stats$claims_with_description, big.mark = ","),
-  sprintf("(%.1f%%)", wa_or_coverage_stats$pct_claims_covered),
-  "\n\n"
-)
-
-cat("Top 20 most frequent HCPCS codes in Washington/Oregon claims:\n")
-wa_or_top_codes <- wa_or_claims |>
-  count(HCPCS_CODE, code_description, code_type, sort = TRUE) |>
-  head(20)
-print(wa_or_top_codes, n = 20)
+  print(n = 20)
 
 cat("\nClaims by code type:\n")
-wa_or_claims |>
+il_mo_wa_or_claims |>
   count(code_type, sort = TRUE) |>
   mutate(
     percentage = 100 * n / sum(n),
@@ -411,27 +324,34 @@ wa_or_claims |>
   ) |>
   print(n = Inf)
 
-wa_or_missing_codes <- wa_or_claims |>
+il_mo_wa_or_missing_codes <- il_mo_wa_or_claims |>
   filter(is.na(code_description)) |>
   count(HCPCS_CODE, sort = TRUE)
 
-if (nrow(wa_or_missing_codes) > 0) {
+if (nrow(il_mo_wa_or_missing_codes) > 0) {
   cat("\nCodes without descriptions (top 10):\n")
-  print(head(wa_or_missing_codes, 10))
-  cat("\nNote:", nrow(wa_or_missing_codes), "unique codes lack descriptions\n")
+  print(head(il_mo_wa_or_missing_codes, 10))
+  cat(
+    "\nNote:",
+    nrow(il_mo_wa_or_missing_codes),
+    "unique codes lack descriptions\n"
+  )
   cat(
     "This represents",
-    format(sum(wa_or_missing_codes$n), big.mark = ","),
+    format(sum(il_mo_wa_or_missing_codes$n), big.mark = ","),
     "claims",
-    sprintf("(%.1f%%)", 100 * sum(wa_or_missing_codes$n) / nrow(wa_or_claims)),
+    sprintf(
+      "(%.1f%%)",
+      100 * sum(il_mo_wa_or_missing_codes$n) / nrow(il_mo_wa_or_claims)
+    ),
     "\n"
   )
 } else {
   cat("\nAll codes have descriptions!\n")
 }
 
-cat("\nTop 20 taxonomy types in Washington/Oregon billing providers:\n")
-wa_or_claims |>
+cat("\nTop 20 taxonomy types in IL/MO/WA/OR billing providers:\n")
+il_mo_wa_or_claims |>
   filter(!is.na(bp_taxonomy_description)) |>
   count(bp_taxonomy_description, sort = TRUE) |>
   head(20) |>

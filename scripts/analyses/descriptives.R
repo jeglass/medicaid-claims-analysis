@@ -1,8 +1,12 @@
-library(dplyr)
+source("R/config.R")
 
-il_mo <- readRDS("data/illinois_missouri_claims.rds")
-wa_or <- readRDS("data/washington_oregon_claims.rds")
-chestnut_claims <- readRDS("data/chestnut_claims.rds")
+library(dplyr)
+library(arrow)
+
+chestnut_claims <- read_parquet(CHESTNUT_CLAIMS_PARQUET)
+il_mo_wa_or <- read_parquet(IL_MO_WA_OR_CLAIMS_PARQUET)
+il_mo <- il_mo_wa_or |> filter(bp_state %in% c("IL", "MO"))
+wa_or <- il_mo_wa_or |> filter(bp_state %in% c("WA", "OR"))
 
 # Keep orgs that have provided any service that Chestnut
 # provided in all of the first 6 months of 2024. Also
@@ -27,6 +31,26 @@ wa_or_filtered <- wa_or |>
     by = "BILLING_PROVIDER_NPI_NUM"
   )
 
+chestnut_claims |>
+  group_by(
+    BILLING_PROVIDER_NPI_NUM,
+    bp_city,
+    bp_state,
+    bp_taxonomy_description
+  ) |>
+  summarize(
+    months_observed = n_distinct(year_month),
+    n_claim_months = n(),
+    total_claims = sum(TOTAL_CLAIMS),
+    total_paid = sum(TOTAL_PAID),
+    paid_per_claim = total_paid / total_claims,
+    paid_per_month = total_paid / months_observed,
+    n_unique_codes = n_distinct(HCPCS_CODE),
+  ) |>
+  arrange(bp_taxonomy_description, desc(total_paid))
+
+# Left off here - need to finish building out summaries for chestnut (e.g., proportions) and replicate them below
+
 il_mo_filtered <- il_mo |>
   filter_out(is.na(bp_taxonomy_description)) |>
   semi_join(
@@ -39,20 +63,16 @@ il_mo_filtered <- il_mo |>
 wa_or_filtered |>
   group_by(BILLING_PROVIDER_NPI_NUM, bp_name) |>
   summarize(
-    n_claims = n(),
+    n_claim_months = n(),
+    total_claims = sum(TOTAL_CLAIMS),
+    total_paid = sum(TOTAL_PAID),
+    paid_per_claim = total_paid / total_claims,
+    months_observed = n_distinct(year_month),
     n_unique_codes = n_distinct(HCPCS_CODE),
     .groups = "drop"
   )
 
-
-wa_or_tidy <- wa_or |>
-  filter_out(is.na(bp_taxonomy_description)) |>
-  group_by(bp_taxonomy_description) |>
-  count() |>
-  print(n = 400)
-
-
-wa_or_tidy <- wa_or |>
+by_provider_type <- wa_or_filtered |>
   filter_out(is.na(bp_taxonomy_description)) |>
   group_by(bp_taxonomy_description) |>
   summarize(
@@ -97,7 +117,10 @@ provider_summary_wide <- provider_totals |>
     for (code in recent_chestnut_hcpcs) {
       n_col <- paste0("n_", code)
       p_col <- paste0("prop_", code)
-      df <- df |> mutate(!!p_col := if_else(total_claims > 0, .data[[n_col]] / total_claims, 0))
+      df <- df |>
+        mutate(
+          !!p_col := if_else(total_claims > 0, .data[[n_col]] / total_claims, 0)
+        )
     }
     df
   }
@@ -123,7 +146,9 @@ wa_or_filtered <- wa_or |>
       distinct(BILLING_PROVIDER_NPI_NUM),
     by = "BILLING_PROVIDER_NPI_NUM"
   )
-n_providers_after <- wa_or_filtered |> distinct(BILLING_PROVIDER_NPI_NUM) |> nrow()
+n_providers_after <- wa_or_filtered |>
+  distinct(BILLING_PROVIDER_NPI_NUM) |>
+  nrow()
 
 # 2) for each kept provider, count how many distinct recent_chestnut_hcpcs they billed
 provider_code_counts <- wa_or_filtered |>
@@ -158,9 +183,9 @@ tibble(
 )
 
 # View tables
-provider_code_counts        # one row per kept provider with count
-count_distribution          # distribution of counts
-top_providers_codes |> head(20)  # top 20 providers by number of chestnut codes billed
+provider_code_counts # one row per kept provider with count
+count_distribution # distribution of counts
+top_providers_codes |> head(20) # top 20 providers by number of chestnut codes billed
 
 #k-means clustering
-https://www.youtube.com/watch?v=opHDQzhO5Fw
+#https://www.youtube.com/watch?v=opHDQzhO5Fw
