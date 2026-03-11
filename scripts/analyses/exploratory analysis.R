@@ -2,6 +2,8 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(forcats)
+library(tidymodels)
+library(cluster)
 
 # Parameters
 n_taxonomies <- 12
@@ -83,3 +85,60 @@ outfile <- file.path(OUTPUT_GRAPHS_DIR, "prop_vars_by_taxonomy.png")
 ggsave(outfile, p, width = 12, height = 6, dpi = 300)
 
 outfile
+
+library(GGally)
+
+wa_or_chestnut_summary |>
+  select(starts_with("prop_H0")) |>
+  ggpairs()
+
+
+# K-means clustering on prop variables
+set.seed(123)
+
+# 1. Recipe: select variables and handle NAs
+kmeans_recipe <- recipe(
+  ~ prop_H0005 + prop_H0010,
+  data = wa_or_chestnut_summary
+) |>
+  step_mutate(across(everything(), ~ replace_na(., 0))) |>
+  step_normalize(all_predictors()) # optional but common for k-means
+
+# 2. Model specification
+kmeans_spec <- k_means(num_clusters = 4) |>
+  set_engine("stats")
+
+# 3. Workflow
+kmeans_wf <- workflow() |>
+  add_recipe(kmeans_recipe) |>
+  add_model(kmeans_spec)
+
+# 4. Fit model
+kmeans_fit <- fit(kmeans_wf, data = wa_or_chestnut_summary)
+
+# 5. Add cluster assignments back to data
+wa_or_chestnut_summary_clusters <- augment(
+  kmeans_fit,
+  wa_or_chestnut_summary
+) |>
+  mutate(.cluster = factor(.cluster))
+
+p_cluster <- ggplot(
+  wa_or_chestnut_summary_clusters,
+  aes(x = prop_H0004, y = prop_H0010, color = .cluster)
+) +
+  geom_point(alpha = 0.6) +
+  labs(
+    title = "K-means Clustering of Providers Based on prop_H0004 and prop_H0010",
+    x = "prop_H0004",
+    y = "prop_H0010",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+
+print(p_cluster)
+
+# Save
+outfile_cluster <- file.path(OUTPUT_GRAPHS_DIR, "kmeans_clusters.png")
+ggsave(outfile_cluster, p_cluster, width = 8, height = 6, dpi = 300)
+cat("\nSaved cluster plot to", outfile_cluster, "\n")
