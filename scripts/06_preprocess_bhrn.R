@@ -96,18 +96,51 @@ bhrn_raw <- read_xlsx(BHRN_NPI_XLSX, col_types = "text") |>
   filter(!is.na(NPI))
 cat("Loaded", nrow(bhrn_raw), "BHRN NPIs\n")
 
-cat("Enriching BHRN NPIs from NPPES organizational data...\n")
+cat("Enriching BHRN NPIs from NPPES data (organizational + individual)...\n")
+
+# Organizational NPIs (Entity Type 2) — already have taxonomy
 org_npi <- open_dataset(ORG_NPI_PARQUET) |>
   filter(NPI %in% bhrn_raw$NPI) |>
-  collect()
+  collect() |>
+  select(NPI, Name, LocationAddress1, LocationAddress2,
+         LocationCity, LocationState, LocationZip,
+         Taxonomy, TaxonomyCode, TaxonomyDisplayName)
+
+# Individual NPIs (Entity Type 1) — name/address only, no taxonomy in core
+indiv_npi <- open_dataset(CORE_NPI_PARQUET) |>
+  filter(npi %in% bhrn_raw$NPI, entity == "Individual") |>
+  collect() |>
+  mutate(
+    Name = trimws(paste(pfname, plname)),
+    TaxonomyCode        = NA_character_,
+    Taxonomy            = NA_character_,
+    TaxonomyDisplayName = NA_character_
+  ) |>
+  select(
+    NPI                = npi,
+    Name,
+    LocationAddress1   = plocline1,
+    LocationAddress2   = plocline2,
+    LocationCity       = ploccityname,
+    LocationState      = plocstatename,
+    LocationZip        = ploczip,
+    Taxonomy,
+    TaxonomyCode,
+    TaxonomyDisplayName
+  )
+
+nppes_lookup <- bind_rows(org_npi, indiv_npi)
 
 bhrn_lookup <- bhrn_raw |>
-  left_join(org_npi, by = "NPI")
+  left_join(nppes_lookup, by = "NPI")
 
-matched <- sum(!is.na(bhrn_lookup$Name))
 cat(
-  "Matched", matched, "of", nrow(bhrn_lookup),
-  "BHRN NPIs to NPPES records\n\n"
+  "Matched", sum(!is.na(bhrn_lookup$Name)), "of", nrow(bhrn_lookup),
+  "BHRN NPIs to NPPES records\n"
+)
+cat(
+  "  Organizational:", nrow(org_npi),
+  "  Individual:", nrow(indiv_npi), "\n\n"
 )
 
 # ---- Medicaid coverage analysis for BHRN NPIs ------------------------------
